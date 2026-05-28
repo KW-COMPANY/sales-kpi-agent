@@ -1,3 +1,4 @@
+<!-- File: index.html -->
 <!DOCTYPE html>
 <html lang="ja">
 <head>
@@ -9,39 +10,22 @@
 <body>
   <header class="hero">
     <h1>🎯 SalesMetric AI</h1>
-    <p>営業チームの目標を入れるだけでKPI設計から実績評価まで自動化</p>
+    <p>チームの営業目標を入れるだけでKPIを自動設計</p>
   </header>
 
   <main>
-    <!-- STEP1: 入力 -->
+    <!-- STEP1: 共通条件 -->
     <section class="card">
-      <h2>STEP 1. 営業条件を入力</h2>
+      <h2>STEP 1. 共通条件</h2>
       <div class="grid">
-        <label>営業先
-  <select id="industry">
-    <option value="" selected>指定無し</option>
-    <option value="機械・製造">機械・製造</option>
-    <option value="建設・不動産">建設・不動産</option>
-    <option value="小売">小売</option>
-    <option value="EC・通販">EC・通販</option>
-    <option value="官公庁・団体">官公庁・団体</option>
-    <option value="飲食・宿泊">飲食・宿泊</option>
-    <option value="医療・介護">医療・介護</option>
-    <option value="美容・ヘルスケア">美容・ヘルスケア</option>
-    <option value="教育・スクール">教育・スクール</option>
-    <option value="人材・コンサル">人材・コンサル</option>
-    <option value="士業・法律">士業・法律</option>
-    <option value="金融・保険">金融・保険</option>
-    <option value="物流・運輸">物流・運輸</option>
-    <option value="レジャー・エンタメ">レジャー・エンタメ</option>
-    <option value="冠婚葬祭">冠婚葬祭</option>
-    <option value="IT・情報通信">IT・情報通信</option>
-    <option value="生活サービス">生活サービス</option>
-    <option value="ペット・ホビー">ペット・ホビー</option>
-    <option value="広告・メディア">広告・メディア</option>
-    <option value="卸売・商社">卸売・商社</option>
-  </select>
-</label>
+        <label>販売目的
+          <select id="purpose">
+            <option value="新規開拓">新規顧客開拓</option>
+            <option value="既存深耕">既存顧客の深耕</option>
+            <option value="シェア拡大">市場シェア拡大</option>
+            <option value="新商品投入">新商品の市場投入</option>
+          </select>
+        </label>
 
         <label>期間
           <select id="period">
@@ -58,30 +42,29 @@
             <option value="gross">粗利ベース</option>
           </select>
         </label>
-
-       <label><span id="targetLabel">売上目標（円）</span>
-  <input type="number" id="target" placeholder="例: 30000000" step="10000" min="0" />
-</label>
-
-        <label>営業メンバー人数
-          <input type="number" id="members" placeholder="例: 5" />
-        </label>
-
-<label><span id="unitLabel">平均顧客単価（円）</span>
-  <input type="number" id="unitPrice" placeholder="例: 500000" step="10000" min="0" />
-</label>  
       </div>
-      <button id="btnDesign" class="primary">KPIを設計する</button>
     </section>
 
+    <!-- STEP2: 業種別目標 -->
+    <section class="card">
+      <h2>STEP 2. 業種別目標を入力（複数追加可）</h2>
+      <div id="segmentList"></div>
+      <button type="button" id="btnAddSegment" class="btn-add">＋ 業種を追加</button>
+      <div>
+        <button id="btnDesign" class="primary">KPIを設計する</button>
+      </div>
+    </section>
+
+    <!-- STEP3: 結果 -->
     <section class="card" id="kpiSection" hidden>
-      <h2>STEP 2. AIが設計したKPIツリー</h2>
+      <h2>STEP 3. 分析結果</h2>
       <div id="kpiOutput" class="output"></div>
     </section>
 
+    <!-- STEP4: 実績入力 -->
     <section class="card" id="resultSection" hidden>
-      <h2>STEP 3. 実績を入力して評価</h2>
-      <div class="grid" id="resultInputs"></div>
+      <h2>STEP 4. 実績を入力して評価</h2>
+      <div id="resultInputs"></div>
       <button id="btnEvaluate" class="primary">実績を評価する</button>
       <div id="evalOutput" class="output"></div>
     </section>
