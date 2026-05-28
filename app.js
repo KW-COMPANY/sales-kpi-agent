@@ -7,11 +7,11 @@ const $ = (id) => document.getElementById(id);
 function syncLabels() {
   const m = $("metricType").value;
   if (m === "gross") {
-    $("targetLabel").textContent = "粗利目標（円）";
+    $("targetLabel").textContent = "チーム粗利目標（円）";
     $("unitLabel").textContent   = "平均粗利単価（円）";
   } else {
-    $("targetLabel").textContent = "売上目標（円）";
-    $("unitLabel").textContent   = "平均顧客単価（円）";
+    $("targetLabel").textContent = "チーム売上目標（円）";
+    $("unitLabel").textContent   = "平均売上単価（円）";
   }
 }
 $("metricType").addEventListener("change", syncLabels);
