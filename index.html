@@ -10,13 +10,13 @@
 <body>
   <header class="hero">
     <h1>🎯 SalesMetric AI</h1>
-    <p>チームの営業目標を入れるだけでKPIを自動設計</p>
+    <p>チームの営業目標からAIでKPIを自動設計</p>
   </header>
 
   <main>
-    <!-- STEP1: 共通条件 -->
+    <!-- STEP1: 共通条件＋全体目標 -->
     <section class="card">
-      <h2>STEP 1. 共通条件</h2>
+      <h2>STEP 1. 共通条件＆全体目標</h2>
       <div class="grid">
         <label>販売目的
           <select id="purpose">
@@ -42,15 +42,26 @@
             <option value="gross">粗利ベース</option>
           </select>
         </label>
+
+        <label><span id="overallTargetLabel">売上目標（円）</span>
+          <input type="number" id="overallTarget" placeholder="例: 50000000" step="10000" min="0" />
+        </label>
       </div>
     </section>
 
-    <!-- STEP2: 業種別目標 -->
+    <!-- STEP2: 業種別に分解 -->
     <section class="card">
-      <h2>STEP 2. 業種別目標を入力（複数追加可）</h2>
+      <h2>STEP 2. 業種別に分解</h2>
+      <div id="overallSummary" class="persons-summary">チーム目標を入力してください</div>
+
+      <div style="margin:12px 0;">
+        <button type="button" id="btnDistribute" class="btn-add">✨ 業種に均等配分</button>
+        <button type="button" id="btnAddSegment" class="btn-add">＋ 業種を追加</button>
+      </div>
+
       <div id="segmentList"></div>
-      <button type="button" id="btnAddSegment" class="btn-add">＋ 業種を追加</button>
-      <div>
+
+      <div style="margin-top:12px;">
         <button id="btnDesign" class="primary">KPIを設計する</button>
       </div>
     </section>
