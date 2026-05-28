@@ -1,37 +1,31 @@
-const WORKER_URL = "https://sales-kpi-agent.gmo-k-watanabe.workers.dev/";
+const WORKER_URL = "https://sales-kpi-agent.gmo-k-watanabe.workers.dev";
 
 let currentKpis = [];
 const $ = (id) => document.getElementById(id);
 
-// ---- ラベル動的切替 ----
+// ---- ラベル切替（売上 or 粗利） ----
 function syncLabels() {
-  const tt = $("targetType").value;
-  const ut = $("unitType").value;
-  $("targetLabel").textContent = tt === "gross" ? "粗利目標（円）" : "売上目標（円）";
-  $("unitLabel").textContent   = ut === "gross" ? "平均粗利単価（円）" : "平均顧客単価（円）";
-
-  // 「粗利目標 × 売上単価」または「売上目標 × 粗利単価」のミックス時は粗利率が必要
-  const needMargin = (tt !== ut);
-  $("marginWrap").hidden = !needMargin;
+  const m = $("metricType").value;
+  if (m === "gross") {
+    $("targetLabel").textContent = "粗利目標（円）";
+    $("unitLabel").textContent   = "平均粗利単価（円）";
+  } else {
+    $("targetLabel").textContent = "売上目標（円）";
+    $("unitLabel").textContent   = "平均顧客単価（円）";
+  }
 }
-$("targetType").addEventListener("change", syncLabels);
-$("unitType").addEventListener("change", syncLabels);
+$("metricType").addEventListener("change", syncLabels);
 syncLabels();
 
 // ---- KPI設計実行 ----
 $("btnDesign").addEventListener("click", async () => {
-  const targetType = $("targetType").value;  // sales | gross
-  const unitType   = $("unitType").value;    // sales | gross
-  const marginRate = Number($("marginRate").value || 0);
-
+  const metricType = $("metricType").value; // sales | gross
   const payload = {
     action: "design",
     industry:   $("industry").value,
     purpose:    $("purpose").value,
     period:     $("period").value,
-    targetType,
-    unitType,
-    marginRate,
+    metricType,
     target:     Number($("target").value || 0),
     members:    Number($("members").value || 1),
     unitPrice:  Number($("unitPrice").value || 1),
@@ -39,10 +33,6 @@ $("btnDesign").addEventListener("click", async () => {
 
   if (!payload.target || !payload.unitPrice) {
     alert("目標金額と単価は必須です");
-    return;
-  }
-  if (targetType !== unitType && (!marginRate || marginRate <= 0 || marginRate >= 100)) {
-    alert("目標と単価の種別が異なる場合は、想定粗利率(1〜99)を入力してください");
     return;
   }
 
@@ -80,11 +70,11 @@ function renderKpi(data) {
 
     <h3>🧮 計算ベース</h3>
     <div class="kpi-item">
-      目標種別: <b>${meta.targetTypeLabel || "-"}</b><br>
-      単価種別: <b>${meta.unitTypeLabel || "-"}</b><br>
-      ${meta.marginRate ? `想定粗利率: <b>${meta.marginRate}%</b><br>` : ""}
+      指標種別: <b>${meta.metricLabel || "-"}</b><br>
+      ${meta.targetLabel}: <b>${(meta.targetAmount || 0).toLocaleString()}</b> 円<br>
+      ${meta.unitLabel}: <b>${(meta.unitAmount || 0).toLocaleString()}</b> 円<br>
       必要受注数: <b>${meta.needDeals}</b>件 / 1人 <b>${meta.perPerson}</b>件 / 1日 <b>${meta.dailyDeals}</b>件<br>
-      参考: 売上換算 <b>${(meta.salesAmount || 0).toLocaleString()}</b>円 / 粗利換算 <b>${(meta.grossAmount || 0).toLocaleString()}</b>円
+      営業日数: <b>${meta.businessDays}</b>日
     </div>
 
     <h3>🎯 推奨KPI</h3>
