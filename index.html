@@ -10,7 +10,7 @@
 <body>
   <header class="hero">
     <h1>🎯 SalesMetric AI</h1>
-    <p>営業チーム単位の目標を入れるだけで、KPI設計から実績評価まで自動化</p>
+    <p>営業チームの目標を入れるだけでKPI設計から実績評価まで自動化</p>
   </header>
 
   <main>
@@ -18,8 +18,9 @@
     <section class="card">
       <h2>STEP 1. 営業条件を入力</h2>
       <div class="grid">
-        <label>業種
+        <label>営業先
           <select id="industry">
+            <option value="" selected>指定なし</option>
             <option value="SaaS">SaaS / IT</option>
             <option value="製造業">製造業</option>
             <option value="小売">小売・EC</option>
@@ -46,7 +47,6 @@
           </select>
         </label>
 
-        <!-- 指標種別（売上 or 粗利）を一括選択 -->
         <label>指標種別
           <select id="metricType">
             <option value="sales">売上ベース</option>
@@ -58,7 +58,7 @@
           <input type="number" id="target" placeholder="例: 30000000" />
         </label>
 
-        <label>チーム人数
+        <label>営業メンバー人数
           <input type="number" id="members" placeholder="例: 5" />
         </label>
 
@@ -69,13 +69,11 @@
       <button id="btnDesign" class="primary">KPIを設計する</button>
     </section>
 
-    <!-- STEP2: KPI出力 -->
     <section class="card" id="kpiSection" hidden>
       <h2>STEP 2. AIが設計したKPIツリー</h2>
       <div id="kpiOutput" class="output"></div>
     </section>
 
-    <!-- STEP3: 実績入力 -->
     <section class="card" id="resultSection" hidden>
       <h2>STEP 3. 実績を入力して評価</h2>
       <div class="grid" id="resultInputs"></div>
