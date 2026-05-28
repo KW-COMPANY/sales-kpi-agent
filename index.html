@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Sales KPI Agent | 営業KPI設計AI</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <header class="hero">
+    <h1>🎯 Sales KPI Agent</h1>
+    <p>営業目標を入れるだけで、KPI設計から実績評価まで自動化</p>
+  </header>
+
+  <main>
+    <!-- STEP1: 入力 -->
+    <section class="card">
+      <h2>STEP 1. 営業条件を入力</h2>
+      <div class="grid">
+        <label>業種
+          <select id="industry">
+            <option value="SaaS">SaaS / IT</option>
+            <option value="製造業">製造業</option>
+            <option value="小売">小売・EC</option>
+            <option value="人材">人材・コンサル</option>
+            <option value="不動産">不動産</option>
+          </select>
+        </label>
+        <label>販売目的
+          <select id="purpose">
+            <option value="新規開拓">新規顧客開拓</option>
+            <option value="既存深耕">既存顧客の深耕</option>
+            <option value="シェア拡大">市場シェア拡大</option>
+            <option value="新商品投入">新商品の市場投入</option>
+          </select>
+        </label>
+        <label>期間
+          <select id="period">
+            <option value="1ヶ月">1ヶ月</option>
+            <option value="四半期" selected>四半期</option>
+            <option value="半期">半期</option>
+            <option value="1年">1年</option>
+          </select>
+        </label>
+        <label>売上目標（円）
+          <input type="number" id="target" placeholder="例: 30000000" />
+        </label>
+        <label>営業人数
+          <input type="number" id="members" placeholder="例: 5" />
+        </label>
+        <label>平均顧客単価（円）
+          <input type="number" id="unitPrice" placeholder="例: 500000" />
+        </label>
+      </div>
+      <button id="btnDesign" class="primary">KPIを設計する</button>
+    </section>
+
+    <!-- STEP2: KPI出力 -->
+    <section class="card" id="kpiSection" hidden>
+      <h2>STEP 2. AIが設計したKPIツリー</h2>
+      <div id="kpiOutput" class="output"></div>
+    </section>
+
+    <!-- STEP3: 実績入力 -->
+    <section class="card" id="resultSection" hidden>
+      <h2>STEP 3. 実績を入力して評価</h2>
+      <div class="grid" id="resultInputs"></div>
+      <button id="btnEvaluate" class="primary">実績を評価する</button>
+      <div id="evalOutput" class="output"></div>
+    </section>
+  </main>
+
+  <footer>
+    <small>Powered by Cloudflare Workers AI × Gemini × Workers KV</small>
+  </footer>
+
+  <script src="app.js"></script>
+</body>
+</html>
