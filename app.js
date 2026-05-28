@@ -12,6 +12,7 @@ let segmentCounter = 0;
 let lastDesignResult = null;
 
 const $ = (id) => document.getElementById(id);
+const fmt = (n) => Number(n || 0).toLocaleString();
 
 function industryOptions(selected = "") {
   return INDUSTRIES.map(v => {
@@ -60,7 +61,6 @@ function addSegmentRow(preset = {}) {
     </div>
   `;
 
-  // 削除ボタン
   row.querySelector(".btn-remove").addEventListener("click", () => {
     if (document.querySelectorAll(".segment-row").length <= 1) {
       alert("最低1行は必要です");
@@ -69,24 +69,16 @@ function addSegmentRow(preset = {}) {
     row.remove();
   });
 
-  // 目標金額・人数の変化で個人別欄を再構築
   const targetInput  = row.querySelector(".seg-target");
   const membersInput = row.querySelector(".seg-members");
   targetInput.addEventListener("input", () => rebuildPersons(row, true));
   membersInput.addEventListener("input", () => rebuildPersons(row, true));
-
-  // 均等再配分ボタン
   row.querySelector(".btn-redistribute").addEventListener("click", () => rebuildPersons(row, true));
 
   $("segmentList").appendChild(row);
   rebuildPersons(row, true);
 }
 
-// ============================================================
-// 個人別欄を再構築
-//   force=true ... 等分配でリセット
-//   force=false ... 既存値を温存して人数差分だけ調整
-// ============================================================
 function rebuildPersons(row, force = false) {
   const target  = Number(row.querySelector(".seg-target").value || 0);
   const members = Math.max(1, Number(row.querySelector(".seg-members").value || 0));
@@ -94,23 +86,15 @@ function rebuildPersons(row, force = false) {
   const grid    = row.querySelector(".persons-grid");
   const { personLabel } = getMetricLabels();
 
-  if (!members || !target) {
-    wrap.hidden = true;
-    return;
-  }
+  if (!members || !target) { wrap.hidden = true; return; }
   wrap.hidden = false;
 
-  // 既存値を取得
-  const existing = Array.from(grid.querySelectorAll(".person-target"))
-                        .map(i => Number(i.value || 0));
+  const existing = Array.from(grid.querySelectorAll(".person-target")).map(i => Number(i.value || 0));
 
-  // 等分配（端数は最後の人に寄せる）
-  const baseShare = Math.floor(target / members / 10000) * 10000; // 1万円単位
+  const baseShare = Math.floor(target / members / 10000) * 10000;
   const distributed = Array(members).fill(baseShare);
-  const used = baseShare * members;
-  distributed[members - 1] += (target - used); // 残差を最後に加算
+  distributed[members - 1] += (target - baseShare * members);
 
-  // 値の確定（force=true なら強制等分配、false なら既存温存）
   let values;
   if (force || existing.length === 0) {
     values = distributed;
@@ -122,7 +106,6 @@ function rebuildPersons(row, force = false) {
     }
   }
 
-  // DOM再生成
   grid.innerHTML = values.map((v, i) => `
     <div class="person-item">
       <label>担当者${i + 1}（${personLabel}）
@@ -132,7 +115,6 @@ function rebuildPersons(row, force = false) {
     </div>
   `).join("");
 
-  // 入力時の合計判定
   grid.querySelectorAll(".person-target").forEach(inp => {
     inp.addEventListener("input", () => updatePersonsSummary(row));
   });
@@ -140,9 +122,6 @@ function rebuildPersons(row, force = false) {
   updatePersonsSummary(row);
 }
 
-// ============================================================
-// 合計判定表示
-// ============================================================
 function updatePersonsSummary(row) {
   const target = Number(row.querySelector(".seg-target").value || 0);
   const sum = Array.from(row.querySelectorAll(".person-target"))
@@ -151,29 +130,22 @@ function updatePersonsSummary(row) {
   const sumEl = row.querySelector(".persons-summary");
   if (diff === 0) {
     sumEl.className = "persons-summary ok";
-    sumEl.innerHTML = `✅ 個人合計: <b>${sum.toLocaleString()}</b>円（業種目標と一致）`;
+    sumEl.innerHTML = `✅ 個人合計: <b>${fmt(sum)}</b>円（業種目標と一致）`;
   } else {
     sumEl.className = "persons-summary warn";
     const sign = diff > 0 ? "超過" : "不足";
-    sumEl.innerHTML = `⚠️ 個人合計: <b>${sum.toLocaleString()}</b>円 / 業種目標: <b>${target.toLocaleString()}</b>円 → <b>${Math.abs(diff).toLocaleString()}円 ${sign}</b>`;
+    sumEl.innerHTML = `⚠️ 個人合計: <b>${fmt(sum)}</b>円 / 業種目標: <b>${fmt(target)}</b>円 → <b>${fmt(Math.abs(diff))}円 ${sign}</b>`;
   }
 }
 
-// ============================================================
-// 指標切替で全行のラベル更新
-// ============================================================
 function syncAllSegmentLabels() {
   const { targetLabel, unitLabel } = getMetricLabels();
   document.querySelectorAll(".seg-target-label").forEach(e => e.textContent = targetLabel);
   document.querySelectorAll(".seg-unit-label").forEach(e => e.textContent = unitLabel);
-  // 個人別欄のラベルも更新
   document.querySelectorAll(".segment-row").forEach(r => rebuildPersons(r, false));
 }
 $("metricType").addEventListener("change", syncAllSegmentLabels);
 
-// ============================================================
-// 初期表示・追加
-// ============================================================
 addSegmentRow();
 $("btnAddSegment").addEventListener("click", () => addSegmentRow());
 
@@ -185,7 +157,7 @@ function collectSegments() {
   const segments = [];
   let hasMismatch = false;
 
-  rows.forEach((r, idx) => {
+  rows.forEach((r) => {
     const industry = r.querySelector(".seg-industry").value;
     const target   = Number(r.querySelector(".seg-target").value || 0);
     const unit     = Number(r.querySelector(".seg-unit").value || 0);
@@ -213,7 +185,7 @@ $("btnDesign").addEventListener("click", async () => {
     return;
   }
   if (hasMismatch) {
-    if (!confirm("個人合計と業種目標が一致していない業種があります。このまま分析を続けますか？")) return;
+    if (!confirm("個人合計と業種目標が一致していない業種があります。続行しますか？")) return;
   }
 
   const payload = {
@@ -235,10 +207,12 @@ $("btnDesign").addEventListener("click", async () => {
       body: JSON.stringify(payload),
     });
     const data = await res.json();
+    console.log("[Design Response]", data); // ★デバッグ
     if (data.error) throw new Error(data.error);
     lastDesignResult = data;
     renderResult(data);
   } catch (e) {
+    console.error(e);
     alert("エラー: " + e.message);
   } finally {
     btn.disabled = false;
@@ -247,83 +221,60 @@ $("btnDesign").addEventListener("click", async () => {
 });
 
 // ============================================================
-// 結果描画
+// 結果描画（合計＋業種別の両方を必ず表示）
 // ============================================================
 function renderResult(data) {
   $("kpiSection").hidden = false;
   $("resultSection").hidden = false;
 
   const total = data.total || {};
-  const segs  = data.segments || [];
+  const segs  = Array.isArray(data.segments) ? data.segments : [];
+  const targetLabel = total.targetLabel || "目標";
+  const unitLabel   = total.unitLabel   || "単価";
 
+  // ---- 合計ブロック（必ず描画） ----
   let html = `
     <div class="total-block">
-      <h4>🏆 合計サマリー（${total.metricLabel || ""}）</h4>
-      <div>${total.summary || ""}</div>
+      <h4>🏆 合計サマリー（全業種合算 / ${total.metricLabel || ""}）</h4>
+      <div>${total.summary || "(全体サマリー生成スキップ — 業種別を参照してください)"}</div>
       <div style="margin-top:8px;">
-        総${total.targetLabel}: <b>${(total.totalTarget||0).toLocaleString()}</b>円<br>
-        総営業人数: <b>${total.totalMembers||0}</b>名<br>
-        必要受注総数: <b>${total.totalNeedDeals||0}</b>件 / 1日 <b>${total.dailyDeals||0}</b>件<br>
-        営業日数: 約${total.businessDays||0}日
+        🎯 総${targetLabel}: <b>${fmt(total.totalTarget)}</b> 円<br>
+        👥 総営業人数: <b>${total.totalMembers || 0}</b> 名<br>
+        📦 必要受注総数: <b>${total.totalNeedDeals || 0}</b> 件 / 1日 <b>${total.dailyDeals || 0}</b> 件<br>
+        📅 営業日数: 約 <b>${total.businessDays || 0}</b> 日<br>
+        🏢 対象業種数: <b>${segs.length}</b> 種
       </div>
+
+      <h5 style="margin-top:12px;">📈 業種別の目標構成比</h5>
+      ${renderShareTable(segs, total)}
+
       <h5 style="margin-top:12px;">🎯 全体共通KPI</h5>
-      ${(total.kpis||[]).map((k,i)=>`
-        <div class="kpi-item">
-          <b>${i+1}. ${k.name}</b>：${k.target} ${k.unit}<br>
-          <small>${k.reason||""}</small>
-        </div>`).join("")}
+      ${renderKpiList(total.kpis)}
+
       <h5 style="margin-top:12px;">🧩 全体タスク</h5>
-      <div>${(total.actions||[]).map(a=>"・"+a).join("<br>")}</div>
+      <div>${(total.actions||[]).map(a=>"・"+a).join("<br>") || "(なし)"}</div>
     </div>
   `;
 
-  segs.forEach((s, idx) => {
-    const personsHtml = (s.persons || []).map((p, i) => `
-      <div class="kpi-item" style="background:#f8fafc;">
-        <b>${p.name}</b>：${total.targetLabel} <b>${p.target.toLocaleString()}</b>円
-        / 必要受注 <b>${p.needDeals}</b>件 / 1日 <b>${p.dailyDeals}</b>件
-        ${p.comment ? `<br><small>💬 ${p.comment}</small>` : ""}
-      </div>
-    `).join("");
-
-    html += `
-      <div class="segment-block">
-        <h4>📊 ${idx+1}. ${s.industryLabel}</h4>
-        <div>${s.summary||""}</div>
-        <div style="margin-top:6px;">
-          ${total.targetLabel}: <b>${s.target.toLocaleString()}</b>円 /
-          ${total.unitLabel}: <b>${s.unit.toLocaleString()}</b>円 /
-          営業人数: <b>${s.members}</b>名<br>
-          必要受注数: <b>${s.needDeals}</b>件 / 1人 <b>${s.perPerson}</b>件 / 1日 <b>${s.dailyDeals}</b>件
-        </div>
-
-        <h5 style="margin-top:10px;">👥 担当者別の割当・所感</h5>
-        ${personsHtml || "<small>担当者データなし</small>"}
-
-        <h5 style="margin-top:10px;">🎯 推奨KPI</h5>
-        ${(s.kpis||[]).map((k,i)=>`
-          <div class="kpi-item">
-            <b>${i+1}. ${k.name}</b>：${k.target} ${k.unit}<br>
-            <small>${k.reason||""}</small>
-          </div>`).join("")}
-        <h5 style="margin-top:10px;">🧩 日次アクション</h5>
-        <div>${(s.actions||[]).map(a=>"・"+a).join("<br>")}</div>
-        <h5 style="margin-top:10px;">📚 参照フレームワーク</h5>
-        <div><small>${s.framework||""}</small></div>
-      </div>
-    `;
-  });
+  // ---- 業種別ブロック ----
+  if (segs.length === 0) {
+    html += `<div class="segment-block">業種別データが空です。入力をご確認ください。</div>`;
+  } else {
+    segs.forEach((s, idx) => {
+      html += renderSegmentBlock(s, idx, total);
+    });
+  }
 
   $("kpiOutput").innerHTML = html;
 
-  // 実績入力欄（業種ごと）
+  // 実績入力欄
   let resHtml = "";
   segs.forEach((s, idx) => {
     resHtml += `
       <div class="segment-block">
         <h4>📊 ${idx+1}. ${s.industryLabel} の実績入力</h4>
         <div class="grid">
-          ${s.kpis.map((k, i) => `
+          ${(s.kpis || []).map((k, i) => `
             <label>${k.name}（${k.unit}）
               <input type="number" class="result-input"
                      data-seg="${idx}" data-idx="${i}"
@@ -337,6 +288,82 @@ function renderResult(data) {
   $("resultInputs").innerHTML = resHtml;
 }
 
+// 構成比テーブル
+function renderShareTable(segs, total) {
+  if (!segs.length || !total.totalTarget) return "<small>(データ不足)</small>";
+  const rows = segs.map((s, i) => {
+    const share = Math.round((s.target / total.totalTarget) * 100);
+    return `
+      <tr>
+        <td>${i+1}</td>
+        <td>${s.industryLabel}</td>
+        <td style="text-align:right;">${fmt(s.target)} 円</td>
+        <td style="text-align:right;">${share}%</td>
+        <td style="text-align:right;">${s.members} 名</td>
+        <td style="text-align:right;">${s.needDeals} 件</td>
+      </tr>`;
+  }).join("");
+  return `
+    <table style="width:100%;border-collapse:collapse;font-size:13px;margin-top:6px;">
+      <thead style="background:#fef3c7;">
+        <tr>
+          <th style="padding:6px;">#</th>
+          <th style="padding:6px;text-align:left;">業種</th>
+          <th style="padding:6px;text-align:right;">${total.targetLabel}</th>
+          <th style="padding:6px;text-align:right;">構成比</th>
+          <th style="padding:6px;text-align:right;">人数</th>
+          <th style="padding:6px;text-align:right;">必要受注</th>
+        </tr>
+      </thead>
+      <tbody>${rows}</tbody>
+    </table>
+  `;
+}
+
+// KPIリスト
+function renderKpiList(kpis) {
+  if (!Array.isArray(kpis) || !kpis.length) return "<small>(KPIなし)</small>";
+  return kpis.map((k,i) => `
+    <div class="kpi-item">
+      <b>${i+1}. ${k.name}</b>：${k.target} ${k.unit}<br>
+      <small>${k.reason || ""}</small>
+    </div>`).join("");
+}
+
+// 業種ブロック
+function renderSegmentBlock(s, idx, total) {
+  const targetLabel = total.targetLabel || "目標";
+  const unitLabel   = total.unitLabel   || "単価";
+  const personsHtml = (s.persons || []).map((p) => `
+    <div class="kpi-item" style="background:#f8fafc;">
+      <b>${p.name}</b>：${targetLabel} <b>${fmt(p.target)}</b>円
+      / 必要受注 <b>${p.needDeals}</b>件 / 1日 <b>${p.dailyDeals}</b>件
+      / 構成比 <b>${p.shareRate || 0}%</b>
+      ${p.comment ? `<br><small>💬 ${p.comment}</small>` : ""}
+    </div>`).join("");
+
+  return `
+    <div class="segment-block">
+      <h4>📊 ${idx+1}. ${s.industryLabel}</h4>
+      <div>${s.summary || ""}</div>
+      <div style="margin-top:6px;">
+        ${targetLabel}: <b>${fmt(s.target)}</b>円 /
+        ${unitLabel}: <b>${fmt(s.unit)}</b>円 /
+        営業人数: <b>${s.members}</b>名<br>
+        必要受注数: <b>${s.needDeals}</b>件 / 1人 <b>${s.perPerson}</b>件 / 1日 <b>${s.dailyDeals}</b>件
+      </div>
+      <h5 style="margin-top:10px;">👥 担当者別の割当・所感</h5>
+      ${personsHtml || "<small>担当者データなし</small>"}
+      <h5 style="margin-top:10px;">🎯 推奨KPI</h5>
+      ${renderKpiList(s.kpis)}
+      <h5 style="margin-top:10px;">🧩 日次アクション</h5>
+      <div>${(s.actions||[]).map(a=>"・"+a).join("<br>") || "(なし)"}</div>
+      <h5 style="margin-top:10px;">📚 参照フレームワーク</h5>
+      <div><small>${s.framework || ""}</small></div>
+    </div>
+  `;
+}
+
 // ============================================================
 // 実績評価
 // ============================================================
@@ -345,7 +372,7 @@ $("btnEvaluate").addEventListener("click", async () => {
   const segs = lastDesignResult.segments || [];
   const segmentResults = segs.map((s, sIdx) => ({
     industryLabel: s.industryLabel,
-    results: s.kpis.map((k, kIdx) => ({
+    results: (s.kpis || []).map((k, kIdx) => ({
       name: k.name,
       target: k.target,
       unit: k.unit,
@@ -366,6 +393,7 @@ $("btnEvaluate").addEventListener("click", async () => {
       body: JSON.stringify({ action: "evaluateMulti", segmentResults }),
     });
     const data = await res.json();
+    console.log("[Evaluate Response]", data);
     if (data.error) throw new Error(data.error);
 
     let html = `
@@ -386,6 +414,7 @@ $("btnEvaluate").addEventListener("click", async () => {
     });
     $("evalOutput").innerHTML = html;
   } catch (e) {
+    console.error(e);
     alert("エラー: " + e.message);
   } finally {
     btn.disabled = false;
