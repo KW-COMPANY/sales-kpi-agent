@@ -82,3 +82,77 @@ footer {
   color: #64748b;
   padding: 24px;
 }
+
+.segment-row {
+  display: grid;
+  grid-template-columns: 1.4fr 1fr 1fr 0.6fr auto;
+  gap: 8px;
+  align-items: end;
+  padding: 12px;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  margin-bottom: 8px;
+}
+.segment-row label {
+  font-size: 12px;
+  color: #475569;
+  gap: 4px;
+}
+.segment-row input,
+.segment-row select {
+  padding: 8px;
+  font-size: 13px;
+}
+.btn-remove {
+  background: #ef4444;
+  color: #fff;
+  border: none;
+  border-radius: 6px;
+  padding: 8px 12px;
+  cursor: pointer;
+  font-size: 12px;
+  height: 36px;
+}
+.btn-remove:hover { background: #dc2626; }
+.btn-add {
+  background: #10b981;
+  color: #fff;
+  border: none;
+  border-radius: 8px;
+  padding: 10px 16px;
+  cursor: pointer;
+  font-size: 14px;
+  margin: 8px 0 16px;
+}
+.btn-add:hover { background: #059669; }
+
+/* 業種別結果ブロック */
+.segment-block {
+  border-left: 4px solid #7c3aed;
+  background: #faf5ff;
+  padding: 12px 16px;
+  margin: 12px 0;
+  border-radius: 6px;
+}
+.segment-block h4 {
+  margin: 0 0 8px;
+  color: #6d28d9;
+}
+.total-block {
+  border-left: 4px solid #f59e0b;
+  background: #fffbeb;
+  padding: 12px 16px;
+  margin: 12px 0;
+  border-radius: 6px;
+}
+.total-block h4 {
+  margin: 0 0 8px;
+  color: #b45309;
+}
+
+@media (max-width: 720px) {
+  .segment-row {
+    grid-template-columns: 1fr 1fr;
+  }
+}
