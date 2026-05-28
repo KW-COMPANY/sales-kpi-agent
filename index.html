@@ -1,3 +1,4 @@
+<!-- File: index.html -->
 <!DOCTYPE html>
 <html lang="ja">
 <head>
@@ -9,7 +10,7 @@
 <body>
   <header class="hero">
     <h1>🎯 SalesMetric AI</h1>
-    <p>営業目標を入れるだけで、KPI設計から実績評価まで自動化</p>
+    <p>営業目標を入れるだけでKPI設計から実績評価まで自動化</p>
   </header>
 
   <main>
@@ -26,6 +27,7 @@
             <option value="不動産">不動産</option>
           </select>
         </label>
+
         <label>販売目的
           <select id="purpose">
             <option value="新規開拓">新規顧客開拓</option>
@@ -34,6 +36,7 @@
             <option value="新商品投入">新商品の市場投入</option>
           </select>
         </label>
+
         <label>期間
           <select id="period">
             <option value="1ヶ月">1ヶ月</option>
@@ -42,14 +45,36 @@
             <option value="1年">1年</option>
           </select>
         </label>
-        <label>売上目標（円）
+
+        <!-- 目標種別 + 金額 -->
+        <label>目標種別
+          <select id="targetType">
+            <option value="sales">売上目標（円）</option>
+            <option value="gross">粗利目標（円）</option>
+          </select>
+        </label>
+        <label><span id="targetLabel">売上目標（円）</span>
           <input type="number" id="target" placeholder="例: 30000000" />
         </label>
+
         <label>営業人数
           <input type="number" id="members" placeholder="例: 5" />
         </label>
-        <label>平均顧客単価（円）
+
+        <!-- 単価種別 + 金額 -->
+        <label>単価種別
+          <select id="unitType">
+            <option value="sales">平均顧客単価（円）</option>
+            <option value="gross">平均粗利単価（円）</option>
+          </select>
+        </label>
+        <label><span id="unitLabel">平均顧客単価（円）</span>
           <input type="number" id="unitPrice" placeholder="例: 500000" />
+        </label>
+
+        <!-- 粗利選択時に出現する補助項目 -->
+        <label id="marginWrap" hidden>想定粗利率（%）
+          <input type="number" id="marginRate" placeholder="例: 30" min="1" max="99" />
         </label>
       </div>
       <button id="btnDesign" class="primary">KPIを設計する</button>
