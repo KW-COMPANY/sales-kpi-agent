@@ -69,8 +69,8 @@ function industryOptions(selected = "") {
 function getMetricLabels() {
   const m = $("metricType").value;
   return m === "gross"
-    ? { targetLabel: "粗利目標（円）", unitLabel: "平均粗利単価（円）", personLabel: "粗利目標", overallTargetLabel: "全体粗利目標（円）" }
-    : { targetLabel: "売上目標（円）", unitLabel: "平均顧客単価（円）", personLabel: "売上目標", overallTargetLabel: "全体売上目標（円）" };
+    ? { targetLabel: "粗利目標（円）", unitLabel: "粗利単価目安（円）", personLabel: "粗利目標", overallTargetLabel: "全体粗利目標（円）" }
+    : { targetLabel: "売上目標（円）", unitLabel: "売上単価目安（円）", personLabel: "売上目標", overallTargetLabel: "全体売上目標（円）" };
 }
 
 // ============================================================
