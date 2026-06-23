@@ -486,16 +486,23 @@ button.primary:disabled {
   margin-top: 10px;
 }
 
-/* === ローディングオーバーレイ === */
+/* ============================================================
+   ローディングオーバーレイ
+   【修正】display:noneをデフォルトに。.is-activeクラス付与時のみ表示。
+   hiddenHTML属性とCSSのdisplay:flexの競合を解消。
+   ============================================================ */
 .loading-overlay {
+  display: none; /* ← デフォルトは非表示（hiddenに頼らない） */
   position: fixed;
   inset: 0;
   background: rgba(15, 23, 42, 0.6);
   backdrop-filter: blur(4px);
-  display: flex;
   align-items: center;
   justify-content: center;
   z-index: 9999;
+}
+.loading-overlay.is-active {
+  display: flex; /* ← JS側でこのクラスを付与したときだけ表示 */
 }
 .loading-box {
   background: var(--bg-card);
@@ -522,8 +529,12 @@ button.primary:disabled {
 }
 .loading-box small { font-size: 12px; color: var(--text-muted); }
 
-/* === トースト通知 === */
+/* ============================================================
+   トースト通知
+   【修正】display:noneをデフォルトに。.is-activeクラス付与時のみ表示。
+   ============================================================ */
 .toast {
+  display: none; /* ← デフォルトは非表示 */
   position: fixed;
   bottom: 24px;
   right: 24px;
@@ -536,6 +547,9 @@ button.primary:disabled {
   box-shadow: 0 8px 24px rgba(0,0,0,0.2);
   z-index: 9998;
   animation: slideUp 0.3s ease;
+}
+.toast.is-active {
+  display: block; /* ← JS側でこのクラスを付与したときだけ表示 */
 }
 .toast.success { background: var(--success); }
 .toast.error   { background: var(--danger); }
