@@ -118,7 +118,7 @@ function updateOverallSummary() {
   }
   if (segSum === 0) {
     sumEl.className = "persons-summary warn";
-    sumEl.innerHTML = `🎯 全体${targetLabel.replace("（円）","")}: <b>${fmt(overall)}</b>円（${formatJPY(overall)}） / 業種合計: <b>0</b>円 → 「✨業種に均等配分」を押すか業種ごとに入力してください`;
+    sumEl.innerHTML = `🎯 全体${targetLabel.replace("（円）","")}: <b>${fmt(overall)}</b>円（${formatJPY(overall)}） / 業種合計: <b>0</b>円 → 「✨予算を均等配分」を押すか業種ごとに入力してください`;
     return;
   }
   const diff = segSum - overall;
@@ -192,7 +192,7 @@ function addSegmentRow(preset = {}) {
 }
 
 // ============================================================
-// 全体目標を業種に均等配分
+// 全体目標を均等配分
 // ============================================================
 function distributeToSegments() {
   const overall = Number($("overallTarget").value || 0);
@@ -216,7 +216,7 @@ function distributeToSegments() {
     rebuildPersons(r, true);
   });
   updateOverallSummary();
-  showToast(`✅ ${rows.length}業種に均等配分しました`, "success");
+  showToast(`✅ ${rows.length}予算を均等配分しました`, "success");
 }
 
 // ============================================================
