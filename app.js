@@ -1,4 +1,3 @@
-// File: app.js
 const WORKER_URL = "https://sales-kpi-agent.gmo-k-watanabe.workers.dev";
 
 const INDUSTRIES = [
@@ -9,7 +8,6 @@ const INDUSTRIES = [
   "ペット・ホビー","広告・メディア","卸売・商社",
 ];
 
-// 販売目的の選択肢（変更箇所）
 const PURPOSES = [
   { value: "新規開拓",       label: "新規顧客開拓" },
   { value: "既存アップセル", label: "既存アップセル" },
