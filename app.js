@@ -1,3 +1,4 @@
+// File: app.js
 const WORKER_URL = "https://sales-kpi-agent.gmo-k-watanabe.workers.dev";
 
 const INDUSTRIES = [
@@ -14,6 +15,49 @@ let lastDesignResult = null;
 const $ = (id) => document.getElementById(id);
 const fmt = (n) => Number(n || 0).toLocaleString();
 
+// ============================================================
+// トースト通知
+// ============================================================
+function showToast(message, type = "default", duration = 3000) {
+  const toast = $("toast");
+  toast.textContent = message;
+  toast.className = `toast${type !== "default" ? " " + type : ""}`;
+  toast.hidden = false;
+  clearTimeout(toast._timer);
+  toast._timer = setTimeout(() => { toast.hidden = true; }, duration);
+}
+
+// ============================================================
+// ローディングオーバーレイ
+// ============================================================
+function showLoading(message = "AIが分析中です…") {
+  $("loadingMessage").textContent = message;
+  $("loadingOverlay").hidden = false;
+}
+function hideLoading() {
+  $("loadingOverlay").hidden = true;
+}
+
+// ============================================================
+// STEPインジケーター更新
+// ============================================================
+function setActiveStep(stepNum) {
+  const items = document.querySelectorAll(".step-item");
+  const lines = document.querySelectorAll(".step-line");
+  items.forEach((item, idx) => {
+    const num = idx + 1;
+    item.classList.remove("active", "done");
+    if (num < stepNum) item.classList.add("done");
+    else if (num === stepNum) item.classList.add("active");
+  });
+  lines.forEach((line, idx) => {
+    line.classList.toggle("done", idx + 1 < stepNum);
+  });
+}
+
+// ============================================================
+// 業種オプション生成
+// ============================================================
 function industryOptions(selected = "") {
   return INDUSTRIES.map(v => {
     const label = v === "" ? "指定無し" : v;
@@ -29,6 +73,17 @@ function getMetricLabels() {
 }
 
 // ============================================================
+// 金額のリアルタイム表示（日本語換算）
+// ============================================================
+function formatJPY(n) {
+  const num = Number(n || 0);
+  if (num === 0) return "";
+  if (num >= 100000000) return `${(num / 100000000).toFixed(num % 100000000 === 0 ? 0 : 1)}億円`;
+  if (num >= 10000) return `${(num / 10000).toFixed(num % 10000 === 0 ? 0 : 1)}万円`;
+  return `${num.toLocaleString()}円`;
+}
+
+// ============================================================
 // 全体目標の整合性チェック
 // ============================================================
 function updateOverallSummary() {
@@ -38,6 +93,9 @@ function updateOverallSummary() {
   const sumEl = $("overallSummary");
   const { targetLabel } = getMetricLabels();
 
+  // 日本語換算表示
+  $("overallTargetDisplay").textContent = overall ? formatJPY(overall) : "";
+
   if (!overall) {
     sumEl.className = "persons-summary";
     sumEl.innerHTML = `⬆️ ${targetLabel}を入力してください`;
@@ -45,17 +103,17 @@ function updateOverallSummary() {
   }
   if (segSum === 0) {
     sumEl.className = "persons-summary warn";
-    sumEl.innerHTML = `🎯 全体${targetLabel.replace("（円）","")}: <b>${fmt(overall)}</b>円 / 業種合計: <b>0</b>円 → 「✨業種に均等配分」を押すか業種ごとに入力してください`;
+    sumEl.innerHTML = `🎯 全体${targetLabel.replace("（円）","")}: <b>${fmt(overall)}</b>円（${formatJPY(overall)}） / 業種合計: <b>0</b>円 → 「✨業種に均等配分」を押すか業種ごとに入力してください`;
     return;
   }
   const diff = segSum - overall;
   if (diff === 0) {
     sumEl.className = "persons-summary ok";
-    sumEl.innerHTML = `✅ 業種合計: <b>${fmt(segSum)}</b>円（全体${targetLabel.replace("（円）","")}と一致）`;
+    sumEl.innerHTML = `✅ 業種合計: <b>${fmt(segSum)}</b>円（${formatJPY(segSum)}）— 全体${targetLabel.replace("（円）","")}と一致`;
   } else {
     sumEl.className = "persons-summary warn";
     const sign = diff > 0 ? "超過" : "不足";
-    sumEl.innerHTML = `⚠️ 全体${targetLabel.replace("（円）","")}: <b>${fmt(overall)}</b>円 / 業種合計: <b>${fmt(segSum)}</b>円 → <b>${fmt(Math.abs(diff))}円 ${sign}</b>`;
+    sumEl.innerHTML = `⚠️ 全体${targetLabel.replace("（円）","")}: <b>${fmt(overall)}</b>円 / 業種合計: <b>${fmt(segSum)}</b>円（${formatJPY(segSum)}） → <b>${fmt(Math.abs(diff))}円 ${sign}</b>`;
   }
 }
 
@@ -82,7 +140,7 @@ function addSegmentRow(preset = {}) {
     <label>営業人数
       <input type="number" class="seg-members" placeholder="例: 2" step="1" min="1" value="${preset.members || ""}" />
     </label>
-    <button type="button" class="btn-remove">削除</button>
+    <button type="button" class="btn-remove" title="この業種行を削除します">削除</button>
     <div class="persons-wrap" hidden>
       <h5>👥 個人別目標
         <button type="button" class="btn-redistribute">均等再配分</button>
@@ -94,7 +152,7 @@ function addSegmentRow(preset = {}) {
 
   row.querySelector(".btn-remove").addEventListener("click", () => {
     if (document.querySelectorAll(".segment-row").length <= 1) {
-      alert("最低1行は必要です");
+      showToast("最低1行は必要です", "error");
       return;
     }
     row.remove();
@@ -122,11 +180,11 @@ function distributeToSegments() {
   const overall = Number($("overallTarget").value || 0);
   const rows = document.querySelectorAll(".segment-row");
   if (!overall) {
-    alert("先に全体目標を入力してください");
+    showToast("先に全体目標を入力してください", "error");
     return;
   }
   if (rows.length === 0) {
-    alert("業種行が存在しません");
+    showToast("業種行が存在しません", "error");
     return;
   }
 
@@ -134,12 +192,13 @@ function distributeToSegments() {
   let used = 0;
   rows.forEach((r, idx) => {
     let share = baseShare;
-    if (idx === rows.length - 1) share = overall - used; // 端数を最後に寄せる
+    if (idx === rows.length - 1) share = overall - used;
     used += share;
     r.querySelector(".seg-target").value = share;
     rebuildPersons(r, true);
   });
   updateOverallSummary();
+  showToast(`✅ ${rows.length}業種に均等配分しました`, "success");
 }
 
 // ============================================================
@@ -257,13 +316,13 @@ function collectSegments() {
 $("btnDesign").addEventListener("click", async () => {
   const overallTarget = Number($("overallTarget").value || 0);
   if (!overallTarget) {
-    alert("全体目標を入力してください");
+    showToast("全体目標を入力してください", "error");
     return;
   }
 
   const { segments, hasMismatch } = collectSegments();
   if (segments.length === 0) {
-    alert("少なくとも1つの業種に有効な目標と単価を入力してください");
+    showToast("少なくとも1つの業種に有効な目標と単価を入力してください", "error");
     return;
   }
 
@@ -286,7 +345,8 @@ $("btnDesign").addEventListener("click", async () => {
 
   const btn = $("btnDesign");
   btn.disabled = true;
-  btn.textContent = "AIが分析中…(最大60秒)";
+  setActiveStep(3);
+  showLoading("AIが業種別ナレッジを参照しながら分析中…");
 
   try {
     const res = await fetch(WORKER_URL, {
@@ -299,12 +359,18 @@ $("btnDesign").addEventListener("click", async () => {
     if (data.error) throw new Error(data.error);
     lastDesignResult = data;
     renderResult(data);
+    showToast("✅ KPI設計が完了しました", "success");
+    // 結果セクションまでスクロール
+    setTimeout(() => {
+      $("kpiSection").scrollIntoView({ behavior: "smooth", block: "start" });
+    }, 200);
   } catch (e) {
     console.error(e);
-    alert("エラー: " + e.message);
+    showToast("エラー: " + e.message, "error", 5000);
+    setActiveStep(2);
   } finally {
     btn.disabled = false;
-    btn.textContent = "KPIを設計する";
+    hideLoading();
   }
 });
 
@@ -321,29 +387,30 @@ function renderResult(data) {
   const unitLabel   = total.unitLabel   || "単価";
 
   const matchBadge = total.overallTarget === total.totalTarget
-    ? `<span style="color:#047857;">✅ 全体目標と一致</span>`
-    : `<span style="color:#b45309;">⚠️ 全体目標と差異あり</span>`;
+    ? `<span style="color:#047857;font-weight:700;">✅ 全体目標と一致</span>`
+    : `<span style="color:#b45309;font-weight:700;">⚠️ 全体目標と差異あり</span>`;
 
   let html = `
     <div class="total-block">
       <h4>🏆 合計サマリー（全業種合算 / ${total.metricLabel || ""}）</h4>
       <div>${total.summary || ""}</div>
-      <div style="margin-top:8px;">
-        🎯 全体${targetLabel}: <b>${fmt(total.overallTarget)}</b> 円<br>
+      <div style="margin-top:10px;line-height:2;">
+        🎯 全体${targetLabel}: <b>${fmt(total.overallTarget)}</b> 円（${formatJPY(total.overallTarget)}）<br>
         📊 業種合計${targetLabel}: <b>${fmt(total.totalTarget)}</b> 円 ${matchBadge}<br>
         👥 総営業人数: <b>${total.totalMembers || 0}</b> 名<br>
         📦 必要受注総数: <b>${total.totalNeedDeals || 0}</b> 件 / 1日 <b>${total.dailyDeals || 0}</b> 件<br>
         📅 営業日数: 約 <b>${total.businessDays || 0}</b> 日<br>
         🏢 対象業種数: <b>${segs.length}</b> 種
       </div>
+      ${total.nextStepAdvice ? `<div class="next-advice">💡 <b>次のステップ:</b> ${total.nextStepAdvice}</div>` : ""}
 
-      <h5 style="margin-top:12px;">📈 業種別の目標構成比</h5>
+      <h5>📈 業種別の目標構成比</h5>
       ${renderShareTable(segs, total)}
 
-      <h5 style="margin-top:12px;">🎯 全体共通KPI</h5>
+      <h5>🎯 全体共通KPI</h5>
       ${renderKpiList(total.kpis)}
 
-      <h5 style="margin-top:12px;">🧩 全体タスク</h5>
+      <h5>🧩 全体タスク</h5>
       <div>${(total.actions||[]).map(a=>"・"+a).join("<br>") || "(なし)"}</div>
     </div>
   `;
@@ -366,9 +433,10 @@ function renderResult(data) {
         <h4>📊 ${idx+1}. ${s.industryLabel} の実績入力</h4>
         <div class="grid">
           ${(s.kpis || []).map((k, i) => `
-            <label>${k.name}（${k.unit}）
+            <label>${k.name}（目標: ${k.target}${k.unit}）
               <input type="number" class="result-input"
                      data-seg="${idx}" data-idx="${i}"
+                     placeholder="実績を入力"
                      step="${k.unit==='円'?10000:1}" min="0" />
             </label>
           `).join("")}
@@ -383,26 +451,34 @@ function renderShareTable(segs, total) {
   if (!segs.length || !total.totalTarget) return "<small>(データ不足)</small>";
   const rows = segs.map((s, i) => {
     const share = Math.round((s.target / total.totalTarget) * 100);
+    const barWidth = Math.min(share, 100);
     return `
       <tr>
-        <td style="padding:6px;">${i+1}</td>
-        <td style="padding:6px;">${s.industryLabel}</td>
-        <td style="padding:6px;text-align:right;">${fmt(s.target)} 円</td>
-        <td style="padding:6px;text-align:right;">${share}%</td>
-        <td style="padding:6px;text-align:right;">${s.members} 名</td>
-        <td style="padding:6px;text-align:right;">${s.needDeals} 件</td>
+        <td style="padding:7px 8px;color:var(--text-muted);font-size:12px;">${i+1}</td>
+        <td style="padding:7px 8px;font-weight:600;">${s.industryLabel}</td>
+        <td style="padding:7px 8px;text-align:right;">${fmt(s.target)} 円<br><small style="color:var(--text-muted)">${formatJPY(s.target)}</small></td>
+        <td style="padding:7px 8px;text-align:right;">
+          <div style="display:flex;align-items:center;gap:8px;justify-content:flex-end;">
+            <div style="width:60px;height:6px;background:#e2e8f0;border-radius:3px;overflow:hidden;">
+              <div style="width:${barWidth}%;height:100%;background:var(--accent);border-radius:3px;"></div>
+            </div>
+            <span style="font-weight:700;min-width:32px;text-align:right;">${share}%</span>
+          </div>
+        </td>
+        <td style="padding:7px 8px;text-align:right;">${s.members} 名</td>
+        <td style="padding:7px 8px;text-align:right;">${s.needDeals} 件</td>
       </tr>`;
   }).join("");
   return `
-    <table style="width:100%;border-collapse:collapse;font-size:13px;margin-top:6px;">
-      <thead style="background:#fef3c7;">
+    <table style="width:100%;border-collapse:collapse;font-size:13px;margin-top:8px;">
+      <thead style="background:var(--warning-light);">
         <tr>
-          <th style="padding:6px;">#</th>
-          <th style="padding:6px;text-align:left;">業種</th>
-          <th style="padding:6px;text-align:right;">${total.targetLabel}</th>
-          <th style="padding:6px;text-align:right;">構成比</th>
-          <th style="padding:6px;text-align:right;">人数</th>
-          <th style="padding:6px;text-align:right;">必要受注</th>
+          <th style="padding:8px;text-align:left;font-size:12px;">#</th>
+          <th style="padding:8px;text-align:left;font-size:12px;">業種</th>
+          <th style="padding:8px;text-align:right;font-size:12px;">${total.targetLabel}</th>
+          <th style="padding:8px;text-align:right;font-size:12px;">構成比</th>
+          <th style="padding:8px;text-align:right;font-size:12px;">人数</th>
+          <th style="padding:8px;text-align:right;font-size:12px;">必要受注</th>
         </tr>
       </thead>
       <tbody>${rows}</tbody>
@@ -415,7 +491,7 @@ function renderKpiList(kpis) {
   return kpis.map((k,i) => `
     <div class="kpi-item">
       <b>${i+1}. ${k.name}</b>：${k.target} ${k.unit}<br>
-      <small>${k.reason || ""}</small>
+      <small style="color:var(--text-muted)">${k.reason || ""}</small>
     </div>`).join("");
 }
 
@@ -423,34 +499,66 @@ function renderSegmentBlock(s, idx, total) {
   const targetLabel = total.targetLabel || "目標";
   const unitLabel   = total.unitLabel   || "単価";
   const personsHtml = (s.persons || []).map((p) => `
-    <div class="kpi-item" style="background:#f8fafc;">
-      <b>${p.name}</b>：${targetLabel} <b>${fmt(p.target)}</b>円
+    <div class="kpi-item" style="background:#f8fafc;padding:8px 10px;border-radius:6px;margin-bottom:6px;border:none;">
+      <b>${p.name}</b>：${targetLabel} <b>${fmt(p.target)}</b>円（${formatJPY(p.target)}）
       / 必要受注 <b>${p.needDeals}</b>件 / 1日 <b>${p.dailyDeals}</b>件
       / 構成比 <b>${p.shareRate || 0}%</b>
-      ${p.comment ? `<br><small>💬 ${p.comment}</small>` : ""}
+      ${p.comment ? `<br><small style="color:var(--text-muted)">💬 ${p.comment}</small>` : ""}
     </div>`).join("");
+
+  const riskHtml = s.riskNote
+    ? `<div class="risk-note">⚠️ ${s.riskNote}</div>`
+    : "";
+
+  const knowledgeHtml = s.industryKnowledge
+    ? `<details style="margin-top:8px;">
+        <summary style="font-size:12px;color:var(--primary);cursor:pointer;font-weight:600;">🔗 参照した業種ナレッジ（外部KV）</summary>
+        <div style="font-size:12px;color:var(--text-muted);padding:6px 0;">${s.industryKnowledge}</div>
+      </details>`
+    : "";
 
   return `
     <div class="segment-block">
       <h4>📊 ${idx+1}. ${s.industryLabel}</h4>
       <div>${s.summary || ""}</div>
-      <div style="margin-top:6px;">
-        ${targetLabel}: <b>${fmt(s.target)}</b>円 /
+      <div style="margin-top:8px;line-height:1.9;font-size:13px;">
+        ${targetLabel}: <b>${fmt(s.target)}</b>円（${formatJPY(s.target)}）/
         ${unitLabel}: <b>${fmt(s.unit)}</b>円 /
         営業人数: <b>${s.members}</b>名<br>
         必要受注数: <b>${s.needDeals}</b>件 / 1人 <b>${s.perPerson}</b>件 / 1日 <b>${s.dailyDeals}</b>件
       </div>
-      <h5 style="margin-top:10px;">👥 担当者別の割当・所感</h5>
+      ${riskHtml}
+      <h5>👥 担当者別の割当・所感</h5>
       ${personsHtml || "<small>担当者データなし</small>"}
-      <h5 style="margin-top:10px;">🎯 推奨KPI</h5>
+      <h5>🎯 推奨KPI</h5>
       ${renderKpiList(s.kpis)}
-      <h5 style="margin-top:10px;">🧩 日次アクション</h5>
-      <div>${(s.actions||[]).map(a=>"・"+a).join("<br>") || "(なし)"}</div>
-      <h5 style="margin-top:10px;">📚 参照フレームワーク</h5>
-      <div><small>${s.framework || ""}</small></div>
+      <h5>🧩 日次アクション</h5>
+      <div style="font-size:13px;">${(s.actions||[]).map(a=>"・"+a).join("<br>") || "(なし)"}</div>
+      <h5>📚 参照フレームワーク</h5>
+      <div><small style="color:var(--text-muted)">${s.framework || ""}</small></div>
+      ${knowledgeHtml}
     </div>
   `;
 }
+
+// ============================================================
+// コピー機能
+// ============================================================
+$("btnCopyResult").addEventListener("click", () => {
+  const text = $("kpiOutput").innerText;
+  navigator.clipboard.writeText(text).then(() => {
+    showToast("📋 結果をクリップボードにコピーしました", "success");
+  }).catch(() => {
+    showToast("コピーに失敗しました", "error");
+  });
+});
+
+// ============================================================
+// 印刷/PDF出力
+// ============================================================
+$("btnPrintResult").addEventListener("click", () => {
+  window.print();
+});
 
 // ============================================================
 // 実績評価
@@ -472,7 +580,8 @@ $("btnEvaluate").addEventListener("click", async () => {
 
   const btn = $("btnEvaluate");
   btn.disabled = true;
-  btn.textContent = "評価中…";
+  setActiveStep(4);
+  showLoading("実績を評価中…");
 
   try {
     const res = await fetch(WORKER_URL, {
@@ -488,6 +597,7 @@ $("btnEvaluate").addEventListener("click", async () => {
       <div class="total-block">
         <h4>🏆 全体総括</h4>
         ${data.overall || ""}
+        ${data.priorityAction ? `<div class="next-advice" style="margin-top:10px;">🚀 <b>次期最優先アクション:</b> ${data.priorityAction}</div>` : ""}
       </div>
     `;
     (data.perSegment || []).forEach((p, i) => {
@@ -495,17 +605,21 @@ $("btnEvaluate").addEventListener("click", async () => {
         <div class="segment-block">
           <h4>📊 ${i+1}. ${p.industryLabel}</h4>
           <div>${p.evaluation || ""}</div>
-          <h5 style="margin-top:10px;">💡 改善アクション</h5>
-          <div>${(p.improvements||[]).map(s => "・"+s).join("<br>")}</div>
+          <h5>💡 改善アクション</h5>
+          <div style="font-size:13px;">${(p.improvements||[]).map(s => "・"+s).join("<br>")}</div>
         </div>
       `;
     });
     $("evalOutput").innerHTML = html;
+    showToast("✅ 実績評価が完了しました", "success");
+    setTimeout(() => {
+      $("evalOutput").scrollIntoView({ behavior: "smooth", block: "start" });
+    }, 200);
   } catch (e) {
     console.error(e);
-    alert("エラー: " + e.message);
+    showToast("エラー: " + e.message, "error", 5000);
   } finally {
     btn.disabled = false;
-    btn.textContent = "実績を評価する";
+    hideLoading();
   }
 });
