@@ -1,3 +1,4 @@
+// File: app.js
 const WORKER_URL = "https://sales-kpi-agent.gmo-k-watanabe.workers.dev";
 
 const INDUSTRIES = [
