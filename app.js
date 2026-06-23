@@ -1,3 +1,4 @@
+// File: app.js
 const WORKER_URL = "https://sales-kpi-agent.gmo-k-watanabe.workers.dev";
 
 const INDUSTRIES = [
@@ -6,6 +7,14 @@ const INDUSTRIES = [
   "人材・コンサル","士業・法律","金融・保険","物流・運輸",
   "レジャー・エンタメ","冠婚葬祭","IT・情報通信","生活サービス",
   "ペット・ホビー","広告・メディア","卸売・商社",
+];
+
+// 販売目的の選択肢（変更箇所）
+const PURPOSES = [
+  { value: "新規開拓",       label: "新規顧客開拓" },
+  { value: "既存アップセル", label: "既存アップセル" },
+  { value: "既存契約の更新", label: "既存契約の更新" },
+  { value: "新商材の販売",   label: "新商材の販売" },
 ];
 
 let segmentCounter = 0;
@@ -20,7 +29,6 @@ const fmt = (n) => Number(n || 0).toLocaleString();
 function showToast(message, type = "default", duration = 3000) {
   const toast = $("toast");
   toast.textContent = message;
-  // typeクラスをリセットしてから付与
   toast.className = "toast is-active" + (type !== "default" ? " " + type : "");
   clearTimeout(toast._timer);
   toast._timer = setTimeout(() => {
@@ -57,6 +65,15 @@ function setActiveStep(stepNum) {
 }
 
 // ============================================================
+// 販売目的オプション生成
+// ============================================================
+function purposeOptions(selected = "新規開拓") {
+  return PURPOSES.map(p =>
+    `<option value="${p.value}" ${p.value === selected ? "selected" : ""}>${p.label}</option>`
+  ).join("");
+}
+
+// ============================================================
 // 業種オプション生成
 // ============================================================
 function industryOptions(selected = "") {
@@ -69,8 +86,8 @@ function industryOptions(selected = "") {
 function getMetricLabels() {
   const m = $("metricType").value;
   return m === "gross"
-    ? { targetLabel: "粗利目標（円）", unitLabel: "粗利単価目安（円）", personLabel: "粗利目標", overallTargetLabel: "全体粗利目標（円）" }
-    : { targetLabel: "売上目標（円）", unitLabel: "売上単価目安（円）", personLabel: "売上目標", overallTargetLabel: "全体売上目標（円）" };
+    ? { targetLabel: "粗利目標（円）", unitLabel: "平均粗利単価（円）", personLabel: "粗利目標", overallTargetLabel: "全体粗利目標（円）" }
+    : { targetLabel: "売上目標（円）", unitLabel: "平均顧客単価（円）", personLabel: "売上目標", overallTargetLabel: "全体売上目標（円）" };
 }
 
 // ============================================================
@@ -128,6 +145,9 @@ function addSegmentRow(preset = {}) {
   row.className = "segment-row";
   row.dataset.id = id;
   row.innerHTML = `
+    <label title="この業種の販売目的を選択してください">販売目的
+      <select class="seg-purpose">${purposeOptions(preset.purpose || "新規開拓")}</select>
+    </label>
     <label>業種
       <select class="seg-industry">${industryOptions(preset.industry || "")}</select>
     </label>
@@ -293,6 +313,7 @@ function collectSegments() {
   let hasMismatch = false;
 
   rows.forEach((r) => {
+    const purpose  = r.querySelector(".seg-purpose").value;
     const industry = r.querySelector(".seg-industry").value;
     const target   = Number(r.querySelector(".seg-target").value || 0);
     const unit     = Number(r.querySelector(".seg-unit").value || 0);
@@ -303,7 +324,7 @@ function collectSegments() {
     if (personSum !== target && target > 0) hasMismatch = true;
 
     if (target > 0 && unit > 0) {
-      segments.push({ industry, target, unit, members, persons, personSum });
+      segments.push({ purpose, industry, target, unit, members, persons, personSum });
     }
   });
 
@@ -336,17 +357,17 @@ $("btnDesign").addEventListener("click", async () => {
 
   const payload = {
     action: "designMulti",
-    purpose:    $("purpose").value,
     period:     $("period").value,
     metricType: $("metricType").value,
     overallTarget,
     segments,
+    purpose: segments.map(s => s.purpose).join("・"),
   };
 
   const btn = $("btnDesign");
   btn.disabled = true;
   setActiveStep(3);
-  showLoading("AIが業種別ナレッジを参照しながら分析中…");
+  showLoading("AIが業種・販売目的別ナレッジを参照しながら分析中…");
 
   try {
     const res = await fetch(WORKER_URL, {
@@ -383,7 +404,6 @@ function renderResult(data) {
   const total = data.total || {};
   const segs  = Array.isArray(data.segments) ? data.segments : [];
   const targetLabel = total.targetLabel || "目標";
-  const unitLabel   = total.unitLabel   || "単価";
 
   const matchBadge = total.overallTarget === total.totalTarget
     ? `<span style="color:#047857;font-weight:700;">✅ 全体目標と一致</span>`
@@ -454,6 +474,7 @@ function renderShareTable(segs, total) {
       <tr>
         <td style="padding:7px 8px;color:var(--text-muted);font-size:12px;">${i+1}</td>
         <td style="padding:7px 8px;font-weight:600;">${s.industryLabel}</td>
+        <td style="padding:7px 8px;font-size:12px;color:var(--text-muted);">${s.purposeLabel || ""}</td>
         <td style="padding:7px 8px;text-align:right;">${fmt(s.target)} 円<br><small style="color:var(--text-muted)">${formatJPY(s.target)}</small></td>
         <td style="padding:7px 8px;text-align:right;">
           <div style="display:flex;align-items:center;gap:8px;justify-content:flex-end;">
@@ -473,6 +494,7 @@ function renderShareTable(segs, total) {
         <tr>
           <th style="padding:8px;text-align:left;font-size:12px;">#</th>
           <th style="padding:8px;text-align:left;font-size:12px;">業種</th>
+          <th style="padding:8px;text-align:left;font-size:12px;">販売目的</th>
           <th style="padding:8px;text-align:right;font-size:12px;">${total.targetLabel}</th>
           <th style="padding:8px;text-align:right;font-size:12px;">構成比</th>
           <th style="padding:8px;text-align:right;font-size:12px;">人数</th>
@@ -517,7 +539,9 @@ function renderSegmentBlock(s, idx, total) {
 
   return `
     <div class="segment-block">
-      <h4>📊 ${idx+1}. ${s.industryLabel}</h4>
+      <h4>📊 ${idx+1}. ${s.industryLabel}
+        <span style="font-size:13px;font-weight:600;color:#7c3aed;margin-left:8px;">／ ${s.purposeLabel || ""}</span>
+      </h4>
       <div>${s.summary || ""}</div>
       <div style="margin-top:8px;line-height:1.9;font-size:13px;">
         ${targetLabel}: <b>${fmt(s.target)}</b>円（${formatJPY(s.target)}）/
@@ -566,6 +590,7 @@ $("btnEvaluate").addEventListener("click", async () => {
   const segs = lastDesignResult.segments || [];
   const segmentResults = segs.map((s, sIdx) => ({
     industryLabel: s.industryLabel,
+    purposeLabel:  s.purposeLabel || "",
     results: (s.kpis || []).map((k, kIdx) => ({
       name: k.name,
       target: k.target,
@@ -601,7 +626,9 @@ $("btnEvaluate").addEventListener("click", async () => {
     (data.perSegment || []).forEach((p, i) => {
       html += `
         <div class="segment-block">
-          <h4>📊 ${i+1}. ${p.industryLabel}</h4>
+          <h4>📊 ${i+1}. ${p.industryLabel}
+            <span style="font-size:13px;font-weight:600;color:#7c3aed;margin-left:8px;">／ ${p.purposeLabel || ""}</span>
+          </h4>
           <div>${p.evaluation || ""}</div>
           <h5>💡 改善アクション</h5>
           <div style="font-size:13px;">${(p.improvements||[]).map(s => "・"+s).join("<br>")}</div>
