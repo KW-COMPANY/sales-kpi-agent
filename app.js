@@ -1,4 +1,3 @@
-// File: app.js
 const WORKER_URL = "https://sales-kpi-agent.gmo-k-watanabe.workers.dev";
 
 const INDUSTRIES = [
@@ -17,7 +16,6 @@ const fmt = (n) => Number(n || 0).toLocaleString();
 
 // ============================================================
 // トースト通知
-// 【修正】hidden属性ではなく is-active クラスで表示制御
 // ============================================================
 function showToast(message, type = "default", duration = 3000) {
   const toast = $("toast");
@@ -32,7 +30,6 @@ function showToast(message, type = "default", duration = 3000) {
 
 // ============================================================
 // ローディングオーバーレイ
-// 【修正】hidden属性ではなく is-active クラスで表示制御
 // ============================================================
 function showLoading(message = "AIが分析中です…") {
   $("loadingMessage").textContent = message;
