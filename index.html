@@ -9,7 +9,7 @@
 <body>
 
   <!-- ローディングオーバーレイ -->
-  <div id="loadingOverlay" class="loading-overlay" hidden>
+  <div id="loadingOverlay" class="loading-overlay">
     <div class="loading-box">
       <div class="loading-spinner"></div>
       <p id="loadingMessage">AIが分析中です…</p>
@@ -18,7 +18,7 @@
   </div>
 
   <!-- トースト通知 -->
-  <div id="toast" class="toast" hidden></div>
+  <div id="toast" class="toast"></div>
 
   <header class="hero">
     <div class="hero-inner">
@@ -58,19 +58,10 @@
   </div>
 
   <main>
-    <!-- STEP1: 共通条件＋全体目標 -->
+    <!-- STEP1: 共通条件＋全体目標（販売目的を削除） -->
     <section class="card" id="step1Card">
       <h2>STEP 1. 共通条件＆全体目標</h2>
       <div class="grid">
-        <label title="営業活動の主な目的を選択してください">販売目的
-          <select id="purpose">
-            <option value="新規開拓">新規顧客開拓</option>
-            <option value="アップセル">既存顧客へのアップセル</option>
-            <option value="更新契約">既存契約の契約更新</option>
-            <option value="新商材投入">新商材の販売</option>
-          </select>
-        </label>
-
         <label title="KPIを管理する対象期間を選択してください">期間
           <select id="period">
             <option value="1ヶ月">1ヶ月</option>
@@ -88,14 +79,14 @@
         </label>
 
         <label title="チーム全体の目標金額を入力してください（例: 5000万円 → 50000000）">
-          <span id="overallTargetLabel">売上目標（円）</span>
+          <span id="overallTargetLabel">全体売上目標（円）</span>
           <input type="number" id="overallTarget" placeholder="例: 50000000" step="10000" min="0" />
           <span id="overallTargetDisplay" class="input-display"></span>
         </label>
       </div>
     </section>
 
-    <!-- STEP2: 業種別に分解 -->
+    <!-- STEP2: 業種別に分解（販売目的を各行に移動） -->
     <section class="card" id="step2Card">
       <h2>STEP 2. 業種別に分解</h2>
       <div id="overallSummary" class="persons-summary">チーム目標を入力してください</div>
@@ -115,7 +106,7 @@
         <button id="btnDesign" class="primary">
           <span class="btn-icon">🚀</span> KPIを設計する
         </button>
-        <p class="submit-note">AIが業種別ナレッジを参照しながら最適なKPIを自動設計します</p>
+        <p class="submit-note">AIが業種・販売目的ごとのナレッジを参照しながら最適なKPIを自動設計します</p>
       </div>
     </section>
 
@@ -152,6 +143,7 @@
   <footer class="site-footer">
     <div class="footer-inner">
       <p>🤖 <strong>SalesMetric AI</strong> — 営業KPI設計AIエージェント</p>
+      <p class="footer-note">Powered by Gemini API × Cloudflare Workers KV | 外部ナレッジ参照・多段処理・業務特化</p>
     </div>
   </footer>
 
