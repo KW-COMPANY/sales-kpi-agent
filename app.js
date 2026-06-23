@@ -17,25 +17,29 @@ const fmt = (n) => Number(n || 0).toLocaleString();
 
 // ============================================================
 // トースト通知
+// 【修正】hidden属性ではなく is-active クラスで表示制御
 // ============================================================
 function showToast(message, type = "default", duration = 3000) {
   const toast = $("toast");
   toast.textContent = message;
-  toast.className = `toast${type !== "default" ? " " + type : ""}`;
-  toast.hidden = false;
+  // typeクラスをリセットしてから付与
+  toast.className = "toast is-active" + (type !== "default" ? " " + type : "");
   clearTimeout(toast._timer);
-  toast._timer = setTimeout(() => { toast.hidden = true; }, duration);
+  toast._timer = setTimeout(() => {
+    toast.classList.remove("is-active");
+  }, duration);
 }
 
 // ============================================================
 // ローディングオーバーレイ
+// 【修正】hidden属性ではなく is-active クラスで表示制御
 // ============================================================
 function showLoading(message = "AIが分析中です…") {
   $("loadingMessage").textContent = message;
-  $("loadingOverlay").hidden = false;
+  $("loadingOverlay").classList.add("is-active");
 }
 function hideLoading() {
-  $("loadingOverlay").hidden = true;
+  $("loadingOverlay").classList.remove("is-active");
 }
 
 // ============================================================
@@ -93,7 +97,6 @@ function updateOverallSummary() {
   const sumEl = $("overallSummary");
   const { targetLabel } = getMetricLabels();
 
-  // 日本語換算表示
   $("overallTargetDisplay").textContent = overall ? formatJPY(overall) : "";
 
   if (!overall) {
@@ -360,7 +363,6 @@ $("btnDesign").addEventListener("click", async () => {
     lastDesignResult = data;
     renderResult(data);
     showToast("✅ KPI設計が完了しました", "success");
-    // 結果セクションまでスクロール
     setTimeout(() => {
       $("kpiSection").scrollIntoView({ behavior: "smooth", block: "start" });
     }, 200);
@@ -425,7 +427,6 @@ function renderResult(data) {
 
   $("kpiOutput").innerHTML = html;
 
-  // 実績入力欄
   let resHtml = "";
   segs.forEach((s, idx) => {
     resHtml += `
