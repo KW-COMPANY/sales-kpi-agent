@@ -1,23 +1,70 @@
+<!-- Output: html -->
+<!-- File: index.html -->
 <!DOCTYPE html>
 <html lang="ja">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>SalesMetric AI | 営業KPI設計AI</title>
+  <title>SalesMetric AI | 営業KPI設計AIエージェント</title>
   <link rel="stylesheet" href="style.css" />
 </head>
 <body>
+
+  <!-- ローディングオーバーレイ -->
+  <div id="loadingOverlay" class="loading-overlay" hidden>
+    <div class="loading-box">
+      <div class="loading-spinner"></div>
+      <p id="loadingMessage">AIが分析中です…</p>
+      <small>最大60秒かかる場合があります</small>
+    </div>
+  </div>
+
+  <!-- トースト通知 -->
+  <div id="toast" class="toast" hidden></div>
+
   <header class="hero">
-    <h1>🎯 SalesMetric AI</h1>
-    <p>チームの営業目標からAIでKPIを自動設計</p>
+    <div class="hero-inner">
+      <div class="hero-badges">
+        <span class="badge">🤖 AIエージェント</span>
+        <span class="badge">🔗 外部ナレッジ連携</span>
+        <span class="badge">📊 多段階タスク分解</span>
+      </div>
+      <h1>🎯 SalesMetric AI</h1>
+      <p>チームの営業目標からAIでKPIを自動設計・評価する<br>営業特化AIエージェント</p>
+    </div>
   </header>
+
+  <!-- STEPインジケーター -->
+  <div class="step-indicator">
+    <div class="step-track">
+      <div class="step-item active" data-step="1">
+        <div class="step-circle">1</div>
+        <div class="step-label">共通条件</div>
+      </div>
+      <div class="step-line"></div>
+      <div class="step-item" data-step="2">
+        <div class="step-circle">2</div>
+        <div class="step-label">業種分解</div>
+      </div>
+      <div class="step-line"></div>
+      <div class="step-item" data-step="3">
+        <div class="step-circle">3</div>
+        <div class="step-label">分析結果</div>
+      </div>
+      <div class="step-line"></div>
+      <div class="step-item" data-step="4">
+        <div class="step-circle">4</div>
+        <div class="step-label">実績評価</div>
+      </div>
+    </div>
+  </div>
 
   <main>
     <!-- STEP1: 共通条件＋全体目標 -->
-    <section class="card">
+    <section class="card" id="step1Card">
       <h2>STEP 1. 共通条件＆全体目標</h2>
       <div class="grid">
-        <label>販売目的
+        <label title="営業活動の主な目的を選択してください">販売目的
           <select id="purpose">
             <option value="新規開拓">新規顧客開拓</option>
             <option value="既存深耕">既存顧客の深耕</option>
@@ -26,7 +73,7 @@
           </select>
         </label>
 
-        <label>期間
+        <label title="KPIを管理する対象期間を選択してください">期間
           <select id="period">
             <option value="1ヶ月">1ヶ月</option>
             <option value="四半期" selected>四半期</option>
@@ -35,50 +82,81 @@
           </select>
         </label>
 
-        <label>指標種別
+        <label title="売上ベース：受注金額で管理 / 粗利ベース：利益金額で管理">指標種別
           <select id="metricType">
             <option value="sales">売上ベース</option>
             <option value="gross">粗利ベース</option>
           </select>
         </label>
 
-        <label><span id="overallTargetLabel">売上目標（円）</span>
+        <label title="チーム全体の目標金額を入力してください（例: 5000万円 → 50000000）">
+          <span id="overallTargetLabel">売上目標（円）</span>
           <input type="number" id="overallTarget" placeholder="例: 50000000" step="10000" min="0" />
+          <span id="overallTargetDisplay" class="input-display"></span>
         </label>
       </div>
     </section>
 
     <!-- STEP2: 業種別に分解 -->
-    <section class="card">
+    <section class="card" id="step2Card">
       <h2>STEP 2. 業種別に分解</h2>
       <div id="overallSummary" class="persons-summary">チーム目標を入力してください</div>
 
-      <div style="margin:12px 0;">
-        <button type="button" id="btnDistribute" class="btn-add">✨ 業種に均等配分</button>
-        <button type="button" id="btnAddSegment" class="btn-add">＋ 業種を追加</button>
+      <div class="action-bar">
+        <button type="button" id="btnDistribute" class="btn-add" title="入力した全体目標を業種行に均等に振り分けます">
+          ✨ 業種に均等配分
+        </button>
+        <button type="button" id="btnAddSegment" class="btn-add" title="業種行を追加します">
+          ＋ 業種を追加
+        </button>
       </div>
 
       <div id="segmentList"></div>
 
-      <div style="margin-top:12px;">
-        <button id="btnDesign" class="primary">KPIを設計する</button>
+      <div class="submit-area">
+        <button id="btnDesign" class="primary">
+          <span class="btn-icon">🚀</span> KPIを設計する
+        </button>
+        <p class="submit-note">AIが業種別ナレッジを参照しながら最適なKPIを自動設計します</p>
       </div>
     </section>
 
     <!-- STEP3: 結果 -->
     <section class="card" id="kpiSection" hidden>
-      <h2>STEP 3. 分析結果</h2>
+      <div class="section-header">
+        <h2>STEP 3. 分析結果</h2>
+        <div class="result-actions">
+          <button type="button" id="btnCopyResult" class="btn-secondary" title="結果をテキストでコピーします">
+            📋 コピー
+          </button>
+          <button type="button" id="btnPrintResult" class="btn-secondary" title="結果を印刷・PDF保存します">
+            🖨️ 印刷/PDF
+          </button>
+        </div>
+      </div>
       <div id="kpiOutput" class="output"></div>
     </section>
 
     <!-- STEP4: 実績入力 -->
     <section class="card" id="resultSection" hidden>
       <h2>STEP 4. 実績を入力して評価</h2>
+      <p class="step-description">KPI設計後に実際の数値を入力して、AIが達成度を評価・改善アクションを提案します。</p>
       <div id="resultInputs"></div>
-      <button id="btnEvaluate" class="primary">実績を評価する</button>
+      <div class="submit-area">
+        <button id="btnEvaluate" class="primary">
+          <span class="btn-icon">📈</span> 実績を評価する
+        </button>
+      </div>
       <div id="evalOutput" class="output"></div>
     </section>
   </main>
+
+  <footer class="site-footer">
+    <div class="footer-inner">
+      <p>🤖 <strong>SalesMetric AI</strong> — 営業KPI設計AIエージェント</p>
+      <p class="footer-note">Powered by Gemini API × Cloudflare Workers KV | 外部ナレッジ参照・多段処理・業務特化</p>
+    </div>
+  </footer>
 
   <script src="app.js"></script>
 </body>
