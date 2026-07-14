@@ -1,3 +1,5 @@
+<!-- Output: html -->
+<!-- File: index.html -->
 <!DOCTYPE html>
 <html lang="ja">
 <head>
@@ -26,6 +28,7 @@
         <span class="badge">🤖 AIエージェント</span>
         <span class="badge">🔗 外部ナレッジ連携</span>
         <span class="badge">📊 多段階タスク分解</span>
+        <span class="badge">♻️ 自己改善ループ</span>
       </div>
       <h1>🎯 SalesMetric AI</h1>
       <p>チームの営業目標からAIでKPIを自動設計・評価する<br>営業特化AIエージェント</p>
@@ -91,6 +94,8 @@
       <h2>STEP 2. 業種別に分解</h2>
       <div id="overallSummary" class="persons-summary">チーム目標を入力してください</div>
 
+      <p class="loop-hint">♻️ 業種を選ぶと、過去の実績から算出した<strong>「平均達成率」</strong>が表示されます。AIはこの実績を自動で学習し、使うほど設計精度が向上します。</p>
+
       <div class="action-bar">
         <button type="button" id="btnDistribute" class="btn-add" title="入力した全体目標を均等に振り分けます">
           ✨ 目標を均等配分
@@ -106,7 +111,7 @@
         <button id="btnDesign" class="primary">
           <span class="btn-icon">🚀</span> KPIを設計する
         </button>
-        <p class="submit-note">AIが業種・販売目的ごとのナレッジを参照しながら最適なKPIを自動設計します</p>
+        <p class="submit-note">AIが業種・販売目的ごとのナレッジと過去実績を参照しながら最適なKPIを自動設計します</p>
       </div>
     </section>
 
@@ -129,7 +134,7 @@
     <!-- STEP4: 実績入力 -->
     <section class="card" id="resultSection" hidden>
       <h2>STEP 4. 実績を入力して評価</h2>
-      <p class="step-description">KPI設計後に実際の数値を入力して、AIが達成度を評価・改善アクションを提案します。</p>
+      <p class="step-description">KPI設計後に実際の数値を入力して、AIが達成度を評価・改善アクションを提案します。評価結果を「承認／却下」すると、その判断がAIの次回設計に学習反映されます。</p>
       <div id="resultInputs"></div>
       <div class="submit-area">
         <button id="btnEvaluate" class="primary">
@@ -143,6 +148,7 @@
   <footer class="site-footer">
     <div class="footer-inner">
       <p>🤖 <strong>SalesMetric AI</strong> — 営業KPI設計AIエージェント</p>
+      <p class="footer-note">♻️ 実行 → 計測 → 評価 → 学習 → 再実行の自己改善ループで、運用するほど賢くなります</p>
     </div>
   </footer>
 
