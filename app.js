@@ -1,3 +1,4 @@
+// File: app.js
 const WORKER_URL = "https://sales-kpi-agent.gmo-k-watanabe.workers.dev";
 
 const INDUSTRIES = [
@@ -17,6 +18,7 @@ const PURPOSES = [
 
 let segmentCounter = 0;
 let lastDesignResult = null;
+const statsCache = {}; // 業種別の過去実績キャッシュ（UI表示用）
 
 const $ = (id) => document.getElementById(id);
 const fmt = (n) => Number(n || 0).toLocaleString();
@@ -133,6 +135,57 @@ function updateOverallSummary() {
 }
 
 // ============================================================
+// 【Closed Loop・UI】業種の過去実績を取得してバッジ表示
+// ============================================================
+async function fetchIndustryStats(industry) {
+  if (!industry) return null;
+  if (statsCache[industry] !== undefined) return statsCache[industry];
+  try {
+    const res = await fetch(WORKER_URL, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ action: "industryStats", industry }),
+    });
+    const data = await res.json();
+    if (data && !data.error) {
+      statsCache[industry] = data;
+      return data;
+    }
+  } catch (_) {}
+  statsCache[industry] = null;
+  return null;
+}
+
+function renderStatsBadge(stats) {
+  if (!stats || !stats.count) {
+    return `<span class="stats-badge stats-empty" title="まだ実績データがありません。運用するほど蓄積されます">📊 実績データ蓄積中</span>`;
+  }
+  const rate = stats.avgRate;
+  const cls = rate == null ? "stats-empty"
+            : rate >= 100 ? "stats-high"
+            : rate >= 80  ? "stats-mid"
+            : "stats-low";
+  const rateText = rate == null ? "—" : `${rate}%`;
+  const fb = (stats.thumbsUp || stats.thumbsDown)
+    ? ` ・ 👍${stats.thumbsUp || 0}/👎${stats.thumbsDown || 0}`
+    : "";
+  return `<span class="stats-badge ${cls}" title="過去${stats.count}回分の平均達成率。AIが次回設計に自動反映します">📈 過去平均達成率 ${rateText}（${stats.count}回）${fb}</span>`;
+}
+
+async function updateSegmentStats(row) {
+  const industry = row.querySelector(".seg-industry").value;
+  const badgeEl = row.querySelector(".seg-stats-badge");
+  if (!badgeEl) return;
+  if (!industry) {
+    badgeEl.innerHTML = "";
+    return;
+  }
+  badgeEl.innerHTML = `<span class="stats-badge stats-empty">📊 実績を確認中…</span>`;
+  const stats = await fetchIndustryStats(industry);
+  badgeEl.innerHTML = renderStatsBadge(stats);
+}
+
+// ============================================================
 // 業種行追加
 // ============================================================
 function addSegmentRow(preset = {}) {
@@ -159,6 +212,7 @@ function addSegmentRow(preset = {}) {
       <input type="number" class="seg-members" placeholder="例: 2" step="1" min="1" value="${preset.members || ""}" />
     </label>
     <button type="button" class="btn-remove" title="この業種行を削除します">削除</button>
+    <div class="seg-stats-badge"></div>
     <div class="persons-wrap" hidden>
       <h5>👥 個人別目標
         <button type="button" class="btn-redistribute">均等再配分</button>
@@ -179,16 +233,20 @@ function addSegmentRow(preset = {}) {
 
   const targetInput  = row.querySelector(".seg-target");
   const membersInput = row.querySelector(".seg-members");
+  const industrySel  = row.querySelector(".seg-industry");
   targetInput.addEventListener("input", () => {
     rebuildPersons(row, true);
     updateOverallSummary();
   });
   membersInput.addEventListener("input", () => rebuildPersons(row, true));
   row.querySelector(".btn-redistribute").addEventListener("click", () => rebuildPersons(row, true));
+  // 【Closed Loop・UI】業種変更時に過去実績バッジ更新
+  industrySel.addEventListener("change", () => updateSegmentStats(row));
 
   $("segmentList").appendChild(row);
   rebuildPersons(row, true);
   updateOverallSummary();
+  updateSegmentStats(row); // 初期表示（presetに業種があれば取得）
 }
 
 // ============================================================
@@ -365,7 +423,7 @@ $("btnDesign").addEventListener("click", async () => {
   const btn = $("btnDesign");
   btn.disabled = true;
   setActiveStep(3);
-  showLoading("AIが業種・販売目的別ナレッジを参照しながら分析中…");
+  showLoading("AIが業種・販売目的別ナレッジと過去実績を参照しながら分析中…");
 
   try {
     const res = await fetch(WORKER_URL, {
@@ -441,6 +499,9 @@ function renderResult(data) {
   }
 
   $("kpiOutput").innerHTML = html;
+
+  // 【Closed Loop・UI】設計結果への👍👎フィードバックをバインド
+  bindDesignFeedback(segs);
 
   let resHtml = "";
   segs.forEach((s, idx) => {
@@ -535,11 +596,26 @@ function renderSegmentBlock(s, idx, total) {
       </details>`
     : "";
 
+  // 【Closed Loop・UI】過去実績を学習に反映したことを明示
+  const learningHtml = s.learningApplied
+    ? `<div class="learning-note">📈 <b>過去実績を学習済み:</b> この業種の過去平均達成率${s.pastAvgRate != null ? `（約${s.pastAvgRate}%）` : ""}を踏まえてKPIを自動補正しました。</div>`
+    : "";
+
+  // 【Closed Loop・UI】設計結果へのフィードバックボタン
+  const feedbackHtml = `
+    <div class="feedback-bar" data-industry="${encodeURIComponent(s.industryLabel)}" data-purpose="${encodeURIComponent(s.purposeLabel || "")}" data-context="design">
+      <span class="feedback-label">この設計は役立ちましたか？（AIの学習に反映されます）</span>
+      <button type="button" class="btn-feedback" data-vote="up" title="役立った">👍 役立った</button>
+      <button type="button" class="btn-feedback" data-vote="down" title="いまいち">👎 いまいち</button>
+      <span class="feedback-thanks" hidden>✅ フィードバックを学習に反映しました</span>
+    </div>`;
+
   return `
     <div class="segment-block">
       <h4>📊 ${idx+1}. ${s.industryLabel}
         <span style="font-size:13px;font-weight:600;color:#7c3aed;margin-left:8px;">／ ${s.purposeLabel || ""}</span>
       </h4>
+      ${learningHtml}
       <div>${s.summary || ""}</div>
       <div style="margin-top:8px;line-height:1.9;font-size:13px;">
         ${targetLabel}: <b>${fmt(s.target)}</b>円（${formatJPY(s.target)}）/
@@ -557,8 +633,51 @@ function renderSegmentBlock(s, idx, total) {
       <h5>📚 参照フレームワーク</h5>
       <div><small style="color:var(--text-muted)">${s.framework || ""}</small></div>
       ${knowledgeHtml}
+      ${feedbackHtml}
     </div>
   `;
+}
+
+// ============================================================
+// 【Closed Loop】フィードバック送信共通関数
+// ============================================================
+async function sendFeedback(payload) {
+  try {
+    const res = await fetch(WORKER_URL, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ action: "feedback", ...payload }),
+    });
+    const data = await res.json();
+    return data && data.ok;
+  } catch (e) {
+    console.error("feedback failed:", e);
+    return false;
+  }
+}
+
+// ============================================================
+// 【Closed Loop】設計結果の👍👎バインド
+// ============================================================
+function bindDesignFeedback(segs) {
+  document.querySelectorAll("#kpiOutput .feedback-bar").forEach(bar => {
+    const industry = decodeURIComponent(bar.dataset.industry || "");
+    const purpose  = decodeURIComponent(bar.dataset.purpose || "");
+    bar.querySelectorAll(".btn-feedback").forEach(btn => {
+      btn.addEventListener("click", async () => {
+        const vote = btn.dataset.vote;
+        bar.querySelectorAll(".btn-feedback").forEach(b => b.disabled = true);
+        const ok = await sendFeedback({ industry, purpose, vote, context: "design" });
+        if (ok) {
+          bar.querySelector(".feedback-thanks").hidden = false;
+          showToast(vote === "up" ? "👍 学習に反映しました" : "👎 次回の改善に反映します", "success");
+        } else {
+          bar.querySelectorAll(".btn-feedback").forEach(b => b.disabled = false);
+          showToast("フィードバック送信に失敗しました", "error");
+        }
+      });
+    });
+  });
 }
 
 // ============================================================
@@ -630,10 +749,20 @@ $("btnEvaluate").addEventListener("click", async () => {
           <div>${p.evaluation || ""}</div>
           <h5>💡 改善アクション</h5>
           <div style="font-size:13px;">${(p.improvements||[]).map(s => "・"+s).join("<br>")}</div>
+          <div class="feedback-bar" data-industry="${encodeURIComponent(p.industryLabel)}" data-purpose="${encodeURIComponent(p.purposeLabel || "")}" data-context="evaluate">
+            <span class="feedback-label">この評価・改善案を採用しますか？（AIの学習に反映されます）</span>
+            <button type="button" class="btn-feedback btn-approve" data-decision="approved" title="承認">✅ 承認して採用</button>
+            <button type="button" class="btn-feedback btn-reject" data-decision="rejected" title="却下">🚫 却下</button>
+            <span class="feedback-thanks" hidden>✅ 判断を学習に反映しました</span>
+          </div>
         </div>
       `;
     });
     $("evalOutput").innerHTML = html;
+
+    // 【Closed Loop】評価結果への承認/却下バインド
+    bindEvaluateFeedback();
+
     showToast("✅ 実績評価が完了しました", "success");
     setTimeout(() => {
       $("evalOutput").scrollIntoView({ behavior: "smooth", block: "start" });
@@ -646,3 +775,28 @@ $("btnEvaluate").addEventListener("click", async () => {
     hideLoading();
   }
 });
+
+// ============================================================
+// 【Closed Loop】評価結果の承認/却下バインド
+// ============================================================
+function bindEvaluateFeedback() {
+  document.querySelectorAll("#evalOutput .feedback-bar").forEach(bar => {
+    const industry = decodeURIComponent(bar.dataset.industry || "");
+    const purpose  = decodeURIComponent(bar.dataset.purpose || "");
+    bar.querySelectorAll(".btn-feedback").forEach(btn => {
+      btn.addEventListener("click", async () => {
+        const decision = btn.dataset.decision;
+        bar.querySelectorAll(".btn-feedback").forEach(b => b.disabled = true);
+        const ok = await sendFeedback({ industry, purpose, decision, context: "evaluate" });
+        if (ok) {
+          bar.querySelector(".feedback-thanks").hidden = false;
+          statsCache[industry] = undefined; // 次回取得時に最新化
+          showToast(decision === "approved" ? "✅ 承認を学習に反映しました" : "🚫 却下を学習に反映しました", "success");
+        } else {
+          bar.querySelectorAll(".btn-feedback").forEach(b => b.disabled = false);
+          showToast("フィードバック送信に失敗しました", "error");
+        }
+      });
+    });
+  });
+}
